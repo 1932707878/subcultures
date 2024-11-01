@@ -1,21 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:subcultures/app.dart';
 
 void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
-      home: Center(
-        child: Text('Ba Ga Ya Lu!'),
-      ),
-    );
-  }
+  // 状态栏和底部导航栏颜色
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Color(0xff171C28),
+      systemNavigationBarColor: Color(0xff1C1C1E),
+    ),
+  );
+  runApp(const Subcultures());
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:subcultures/pages/tab_page.dart';
 
 // 路由管理类
 class Routes {
@@ -6,7 +7,7 @@ class Routes {
     switch (settings.name) {
       // 首页
       case RoutePath.tab:
-      // return pageRoute(TabPage(), settings: settings);
+        return pageRoute(TabPage(), settings: settings);
     }
 
     // 404
