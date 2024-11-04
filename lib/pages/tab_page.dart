@@ -6,7 +6,8 @@ import 'package:subcultures/pages/home/home_page.dart';
 import 'package:subcultures/pages/list/list_page.dart';
 import 'package:subcultures/pages/profile/profile_page.dart';
 
-const bottomAppBarHeight = 60.0;
+/// 导航图标大小
+const navIconSize = 36.0;
 
 class TabPage extends StatefulWidget {
   const TabPage({super.key});
@@ -17,15 +18,60 @@ class TabPage extends StatefulWidget {
 
 class _TabPageState extends State<TabPage> {
   /// 当前页面下标
-  int _currentIndex = 0;
+  var _currentIndex = 0;
 
   /// 页面列表
   final List<Widget> _pages = [];
 
+  /// 图标集
+  final List<BottomNavigationBarItem> _items = [
+    BottomNavigationBarItem(
+      label: '',
+      icon: Image.asset('assets/icons/tab/home.png',
+          width: navIconSize, height: navIconSize),
+      activeIcon: Image.asset('assets/icons/tab/home_select.png',
+          width: navIconSize, height: navIconSize),
+    ),
+    BottomNavigationBarItem(
+      label: '',
+      icon: Image.asset('assets/icons/tab/list.png',
+          width: navIconSize, height: navIconSize),
+      activeIcon: Image.asset('assets/icons/tab/list_select.png',
+          width: navIconSize, height: navIconSize),
+    ),
+    BottomNavigationBarItem(
+      label: '',
+      icon: Image.asset('assets/icons/tab/publish.png',
+          width: navIconSize, height: navIconSize),
+      activeIcon: Image.asset('assets/icons/tab/publish.png',
+          width: navIconSize, height: navIconSize),
+    ),
+    BottomNavigationBarItem(
+      label: '',
+      icon: Image.asset('assets/icons/tab/chat.png',
+          width: navIconSize, height: navIconSize),
+      activeIcon: Image.asset('assets/icons/tab/chat_select.png',
+          width: navIconSize, height: navIconSize),
+    ),
+    BottomNavigationBarItem(
+      label: '',
+      icon: Image.asset('assets/icons/tab/profile.png',
+          width: navIconSize, height: navIconSize),
+      activeIcon: Image.asset('assets/icons/tab/profile_select.png',
+          width: navIconSize, height: navIconSize),
+    ),
+  ];
+
   @override
   void initState() {
     super.initState();
-    _pages.addAll([HomePage(), ListPage(), ChatPage(), ProfilePage()]);
+    _pages.addAll([
+      const HomePage(),
+      const ListPage(),
+      Container(),
+      const ChatPage(),
+      const ProfilePage()
+    ]);
   }
 
   /// 点击发布
@@ -33,8 +79,11 @@ class _TabPageState extends State<TabPage> {
     log('点击发布');
   }
 
-  // 页面切换
+  /// 页面改变
   void _changePage(int index) {
+    if (index == 2) {
+      return;
+    }
     setState(() {
       _currentIndex = index;
     });
@@ -43,105 +92,18 @@ class _TabPageState extends State<TabPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: _pages[_currentIndex],
+      body: _pages[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color(0xff1C1C1E),
+        type: BottomNavigationBarType.fixed,
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
+        selectedFontSize: 0,
+        unselectedFontSize: 0,
+        currentIndex: _currentIndex,
+        items: _items,
+        onTap: (int index) => _changePage(index),
       ),
-      bottomNavigationBar: SizedBox(
-        height: bottomAppBarHeight,
-        child: Stack(
-          children: [
-            BottomAppBar(
-              color: const Color(0xff1C1C1E),
-              // shape: CircularNotchedRectangle(),
-              shape: CustomNotchedShape(context),
-              child: Row(
-                //均分底部导航栏横向空间
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  IconButton(
-                    icon: Image.asset('assets/icons/tab/home.png'),
-                    onPressed: () => _changePage(0),
-                    selectedIcon:
-                        Image.asset('assets/icons/tab/home_select.png'),
-                    isSelected: _currentIndex == 0 ? true : false,
-                  ),
-                  IconButton(
-                    icon: Image.asset('assets/icons/tab/list.png'),
-                    onPressed: () => _changePage(1),
-                    selectedIcon:
-                        Image.asset('assets/icons/tab/list_select.png'),
-                    isSelected: _currentIndex == 1 ? true : false,
-                  ),
-                  Image.asset(
-                    'assets/icons/tab/publish_circular.png',
-                    width: 45,
-                  ), //中间位置空出
-                  IconButton(
-                    icon: Image.asset('assets/icons/tab/chat.png'),
-                    onPressed: () => _changePage(2),
-                    selectedIcon:
-                        Image.asset('assets/icons/tab/chat_select.png'),
-                    isSelected: _currentIndex == 2 ? true : false,
-                  ),
-                  IconButton(
-                    icon: Image.asset('assets/icons/tab/profile.png'),
-                    onPressed: () => _changePage(3),
-                    selectedIcon:
-                        Image.asset('assets/icons/tab/profile_select.png'),
-                    isSelected: _currentIndex == 3 ? true : false,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      //悬浮按钮
-      //悬浮按钮位置
-      // floatingActionButtonLocation: CustomFABLocation(),
-      // floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
-  }
-}
-
-class CustomNotchedShape extends NotchedShape {
-  final BuildContext context;
-  const CustomNotchedShape(this.context);
-
-  @override
-  Path getOuterPath(Rect host, Rect? guest) {
-    const radius = 40.0;
-    const lx = 20.0;
-    const ly = 8;
-    const bx = 10.0;
-    const by = 20.0;
-    var x = (MediaQuery.of(context).size.width - radius) / 2 - lx;
-    return Path()
-      ..moveTo(host.left, host.top)
-      ..lineTo(x, host.top)
-      ..quadraticBezierTo(x + bx, host.top, x += lx, host.top - ly)
-      ..quadraticBezierTo(
-          x + radius / 2, host.top - by, x += radius, host.top - ly)
-      ..quadraticBezierTo((x += lx) - bx, host.top, x, host.top)
-      ..lineTo(host.right, host.top)
-      ..lineTo(host.right, host.bottom)
-      ..lineTo(host.left, host.bottom);
-  }
-}
-
-class CustomFABLocation extends FloatingActionButtonLocation {
-  @override
-  Offset getOffset(ScaffoldPrelayoutGeometry scaffoldGeometry) {
-    // (视窗宽度-按钮宽度)/2
-    double fabX = scaffoldGeometry.scaffoldSize.width / 2 -
-        scaffoldGeometry.floatingActionButtonSize.width / 2;
-    // (视窗高度-按钮高度)/2 - 10
-    double fabY = scaffoldGeometry.scaffoldSize.height -
-        (scaffoldGeometry.floatingActionButtonSize.height +
-                bottomAppBarHeight) /
-            2 -
-        10;
-    return Offset(fabX, fabY);
   }
 }

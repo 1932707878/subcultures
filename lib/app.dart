@@ -11,9 +11,11 @@ class Subcultures extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xff171C28),
-        hintColor: Colors.white,
-      ),
+          scaffoldBackgroundColor: const Color(0xff171C28),
+          textTheme: const TextTheme(
+              bodyMedium: TextStyle(
+            color: Colors.white,
+          ))),
       navigatorKey: RouteUtils.navigatorKey,
       onGenerateRoute: Routes.generateRoute,
       initialRoute: RoutePath.tab,
