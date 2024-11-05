@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:subcultures/models/post.dart';
 import 'package:subcultures/widgets/expandable_text.dart';
+import 'package:subcultures/widgets/video_player.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,7 +18,7 @@ class _HomePageState extends State<HomePage> {
     name: 'Dopamine',
     avatar:
         'https://one-hand.oss-cn-hangzhou.aliyuncs.com/suncaltures/default/1.png',
-    imgs: [
+    images: [
       'https://one-hand.oss-cn-hangzhou.aliyuncs.com/suncaltures/default/photo_1.jpg'
     ],
     videos: [
@@ -53,45 +54,124 @@ class _HomePageState extends State<HomePage> {
   /// 页面结构
   Center _getPage() {
     return Center(
-      child: SizedBox(
+      child: Container(
         height: 380,
+        // color: Colors.white12,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 用户信息
             _topView(),
             // 标题和内容
-            Container(
-              padding: EdgeInsets.only(top: 5, bottom: 5),
-              child: SizedBox(
-                child: ExpandableText(
-                  text: 'data ' * 50,
-                  contentStyle: const TextStyle(fontSize: 16),
-                ),
-              ),
-            ),
+            _contentView(),
             // 图片和视频
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                image: DecorationImage(
-                  image: NetworkImage(data.imgs[0]),
-                  fit: BoxFit.cover,
-                ),
-              ),
-              height: 200,
-              width: double.infinity,
-            ),
+            _mediaView(),
             // 底部功能区
-            SizedBox(
-              height: 22,
-            )
+            _bottomFuncView(),
           ],
         ),
       ),
     );
   }
 
-  /// 顶部信息-用户信息
+  /// 打开送礼
+  void showGift() {}
+
+  /// 打开举报
+  void showReport() {}
+
+  /// 打开评论
+  void showComment() {}
+
+  /// 点击喜欢
+  void like() {}
+
+  /// 展示大图或视频
+  void showMedia() {}
+
+  /// 关注用户
+  void follow() {}
+
+  /// 跳转帖子详情
+  void jumpToPostDetail() {}
+
+  /// 跳转用户信息
+  void jumpToUserInfo() {}
+
+  /// ### 底部功能区
+  ///
+  /// 喜欢、评论、举报、送礼
+  SizedBox _bottomFuncView() {
+    const paddingValue = 10.0;
+    const paddingLeftValue = 16.0;
+    return SizedBox(
+      height: 50,
+      child: Row(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(paddingValue),
+                child: Image.asset('assets/icons/home/like.png'),
+              ),
+              Container(
+                margin: const EdgeInsets.only(left: paddingLeftValue),
+                padding: const EdgeInsets.all(paddingValue),
+                child: Image.asset('assets/icons/home/comment.png'),
+              ),
+              Container(
+                margin: const EdgeInsets.only(left: paddingLeftValue),
+                padding: const EdgeInsets.all(paddingValue),
+                child: Image.asset('assets/icons/home/report.png'),
+              ),
+            ],
+          ),
+          const Expanded(child: SizedBox()),
+          Row(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(
+                    top: paddingValue, bottom: paddingValue),
+                child: Image.asset('assets/icons/home/gift.png'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// ### 媒体区域
+  ///
+  /// 图片或视频
+  Expanded _mediaView() {
+    return Expanded(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          child: OneHandVideoPlayer(url: data.videos[0]),
+        ),
+      ),
+    );
+  }
+
+  /// 内容区域
+  Container _contentView() {
+    return Container(
+      padding: const EdgeInsets.only(top: 5, bottom: 5),
+      child: SizedBox(
+        child: ExpandableText(
+          text: "sdadwasdasdasda" * 10,
+          contentStyle: const TextStyle(fontSize: 16),
+          expendable: false,
+        ),
+      ),
+    );
+  }
+
+  /// ### 顶部信息
+  ///
+  /// 头像、昵称、发送日期、关注
   SizedBox _topView() {
     return SizedBox(
       height: 44,

@@ -5,6 +5,8 @@ class ExpandableText extends StatefulWidget {
   /// 显示内容
   final String text;
 
+  final bool expendable;
+
   /// 最大显示行数
   final int maxLines;
 
@@ -17,9 +19,13 @@ class ExpandableText extends StatefulWidget {
   const ExpandableText({
     super.key,
     required this.text,
+    this.expendable = true,
     this.maxLines = 3,
     this.contentStyle,
-    this.expandFuncStyle,
+    this.expandFuncStyle = const TextStyle(
+      color: Colors.blueAccent,
+      fontSize: 16,
+    ),
   });
 
   @override
@@ -28,56 +34,61 @@ class ExpandableText extends StatefulWidget {
 
 class _ExpandableTextState extends State<ExpandableText> {
   bool _isExpanded = false;
+  late int _textLineCount;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _calculateTextLineCount();
+  }
+
+  void _calculateTextLineCount() {
+    final textStyle = DefaultTextStyle.of(context).style;
+    final textSpan = TextSpan(text: widget.text, style: textStyle);
+    final textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.ltr,
+      maxLines: null,
+    );
+    textPainter.layout(maxWidth: MediaQuery.of(context).size.width);
+    _textLineCount = textPainter.computeLineMetrics().length;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final span = TextSpan(text: widget.text);
-            final tp = TextPainter(
-              text: span,
-              textDirection: TextDirection.ltr,
-              maxLines: widget.maxLines,
-            );
-            tp.layout(maxWidth: constraints.maxWidth);
-            // 是否溢出
-            final overflow = tp.didExceedMaxLines;
-            if (!overflow || _isExpanded) {
-              // 未溢出|未展开
-              return Text(
-                widget.text,
-                style: widget.contentStyle,
-              );
-            } else {
-              // 溢出显示指定行数
-              final truncatedText =
-                  '${tp.text!.toPlainText().substring(0, tp.text!.toPlainText().length - 4)}...';
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    truncatedText,
-                    style: widget.contentStyle,
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _isExpanded = !_isExpanded;
-                      });
-                    },
-                    child: Text(
-                      _isExpanded ? '收起' : '展开',
-                      style: widget.expandFuncStyle,
-                    ),
-                  ),
-                ],
-              );
-            }
-          },
+        AnimatedCrossFade(
+          firstChild: Text(
+            widget.text,
+            maxLines: widget.maxLines,
+            overflow: TextOverflow.ellipsis,
+            style: widget.contentStyle,
+          ),
+          secondChild: Text(widget.text, style: widget.contentStyle),
+          crossFadeState: _isExpanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 200),
         ),
+        if (widget.expendable && _textLineCount > widget.maxLines)
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _isExpanded = !_isExpanded;
+              });
+            },
+            child: Text(
+              _isExpanded ? 'Fold' : 'Unfold',
+              style: widget.expandFuncStyle,
+            ),
+          ),
       ],
     );
   }

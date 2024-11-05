@@ -9,7 +9,7 @@ class Post {
   String avatar;
 
   /// 照片集
-  List<String> imgs;
+  List<String> images;
 
   /// 视频集
   List<String> videos;
@@ -24,7 +24,7 @@ class Post {
     required this.id,
     required this.name,
     required this.avatar,
-    required this.imgs,
+    required this.images,
     required this.videos,
     required this.time,
     required this.isLike,

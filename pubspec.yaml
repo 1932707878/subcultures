@@ -39,6 +39,7 @@ dependencies:
   # 日志美化插件
   pretty_dio_logger: ^1.4.0
   intl: ^0.19.0
+  video_player: ^2.9.2
 
 dev_dependencies:
   flutter_test:
