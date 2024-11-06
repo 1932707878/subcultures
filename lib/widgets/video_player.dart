@@ -15,37 +15,12 @@ class OneHandVideoPlayer extends StatefulWidget {
 }
 
 class _OneHandVideoPlayerState extends State<OneHandVideoPlayer> {
-  late VideoPlayerController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    // 初始化视频播放器控制器，使用网络视频或本地视频
-    _controller = VideoPlayerController.networkUrl(
-      Uri.parse(widget.url),
-    );
-    // 本地视频
-    // _controller = VideoPlayerController.asset('assets/video.mp4');
-
-    // 初始化
-    // _controller.initialize().then((_) {
-    //   setState(() {});
-    // });
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    // 释放资源
-    _controller.dispose();
-  }
-
   /// 播放视频
   void _playVideo() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => FullScreenVideoPlayer(controller: _controller),
+        builder: (context) => FullScreenVideoPlayer(url: widget.url),
       ),
     );
   }
@@ -65,7 +40,11 @@ class _OneHandVideoPlayerState extends State<OneHandVideoPlayer> {
           ),
           // 播放按钮
           IconButton(
-            icon: Icon(Icons.play_circle_fill, size: 100, color: Colors.white),
+            icon: const Icon(
+              Icons.play_circle_fill,
+              size: 36,
+              color: Colors.white,
+            ),
             onPressed: _playVideo,
           ),
         ],
@@ -74,12 +53,13 @@ class _OneHandVideoPlayerState extends State<OneHandVideoPlayer> {
   }
 }
 
+/// 全屏播放视频组件
 class FullScreenVideoPlayer extends StatefulWidget {
-  final VideoPlayerController controller;
+  final String url;
 
   const FullScreenVideoPlayer({
     super.key,
-    required this.controller,
+    required this.url,
   });
 
   @override
@@ -87,28 +67,61 @@ class FullScreenVideoPlayer extends StatefulWidget {
 }
 
 class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
+  late VideoPlayerController controller;
+
+  /// 是否在加载
+  bool isLoading = true;
+
   @override
   void initState() {
     super.initState();
-    widget.controller.initialize().then((_) {
+    // 初始化视频播放器控制器，使用网络视频或本地视频
+    controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+
+    // 本地视频
+    // _controller = VideoPlayerController.asset('assets/video.mp4');
+
+    controller.addListener(() {
+      if (controller.value.isInitialized) {
+        /// 初始化完成
+        setState(() {
+          isLoading = false;
+        });
+      }
+      if (controller.value.isBuffering) {
+        /// 正在缓冲
+        setState(() {
+          isLoading = true;
+        });
+      } else {
+        /// 缓冲完成
+        setState(() {
+          isLoading = false;
+        });
+
+        // 自动播放
+        // controller.play();
+      }
+    });
+
+    /// 视频初始化
+    controller.initialize().then((_) {
       setState(() {});
-      widget.controller.play(); // 自动播放视频
     });
   }
 
-  /// 播放资源跟随组件销毁，不需要手动销毁
   @override
   void dispose() {
     super.dispose();
-    pause();
+    controller.dispose();
   }
 
   /// 暂停播放
   void pause() {
-    if (widget.controller.value.isPlaying) {
-      widget.controller.pause();
+    if (controller.value.isPlaying) {
+      controller.pause();
     } else {
-      widget.controller.play();
+      controller.play();
     }
     setState(() {});
   }
@@ -116,27 +129,75 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
   // Navigator.pop(context);
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Center(
-          child: widget.controller.value.isInitialized
-              ? AspectRatio(
-                  aspectRatio: widget.controller.value.aspectRatio,
-                  child: VideoPlayer(widget.controller),
+    return Scaffold(
+      body: SafeArea(
+        child: Stack(
+          children: [
+            const SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+            ),
+            Center(
+              child: isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : controller.value.isInitialized
+                      ? AspectRatio(
+                          aspectRatio: controller.value.aspectRatio,
+                          child: VideoPlayer(controller),
+                        )
+                      : const Text(
+                          'Video not initialized!',
+                          style: TextStyle(fontSize: 20, color: Colors.white),
+                        ),
+            ),
+            Stack(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  height: double.infinity,
+                  child: GestureDetector(
+                    onDoubleTap: () => pause(),
+                  ),
+                ),
+                if (!controller.value.isPlaying)
+                  const Center(
+                    child: Icon(
+                      Icons.play_arrow,
+                      size: 60,
+                      color: Color.fromARGB(100, 255, 255, 255),
+                    ),
+                  ),
+                Positioned(
+                  top: 5,
+                  left: 5,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 40,
+                  left: 0,
+                  right: 0,
+                  child: Slider(
+                    value: controller.value.position.inSeconds.toDouble(),
+                    min: 0.0,
+                    max: controller.value.duration.inSeconds.toDouble(),
+                    onChanged: (double position) {
+                      setState(() {
+                        controller.seekTo(Duration(seconds: position.toInt()));
+                      });
+                    },
+                  ),
                 )
-              : const CircularProgressIndicator(),
+              ],
+            ),
+          ],
         ),
-        Center(
-          child: IconButton(
-              onPressed: pause,
-              icon: Icon(
-                widget.controller.value.isPlaying
-                    ? Icons.pause_circle
-                    : Icons.play_circle,
-                color: Colors.white,
-              )),
-        ),
-      ],
+      ),
     );
   }
 }
