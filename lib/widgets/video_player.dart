@@ -1,7 +1,9 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:developer';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 class OneHandVideoPlayer extends StatefulWidget {
@@ -72,11 +74,24 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
   /// 播放器实例
   late VideoPlayerController controller;
 
+  /// 初始屏幕状态
+  late final Orientation _orientation;
+
+  /// 当前屏幕状态
+  late Orientation _currentOrientation;
+
+  /// 初始屏幕状态辅助变量
+  var hasOrientation = false;
+
   /// 初始化完成
   late Future<void> _initializeVideoPlayerFuture;
 
   /// 是否在加载
   bool isLoading = true;
+
+  /// 视频倍速
+  List<double> speeds = [3.0, 2.0, 1.0, 0.75, 0.5];
+  // List<double> speeds = [0.5, 0.75, 1.0, 2.0, 3.0];
 
   @override
   void initState() {
@@ -118,6 +133,17 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
         controller.play();
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 记录屏幕状态
+    if (!hasOrientation) {
+      _orientation = MediaQuery.of(context).orientation;
+      hasOrientation = true;
+    }
+    _currentOrientation = MediaQuery.of(context).orientation;
   }
 
   @override
@@ -174,6 +200,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
   Stack _funcView(BuildContext context) {
     return Stack(
       children: [
+        // 双击暂停
         SizedBox(
           width: double.infinity,
           height: double.infinity,
@@ -182,43 +209,145 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
           ),
         ),
         if (!isLoading && !controller.value.isPlaying)
+          // 居中暂停
           const Center(
             child: Icon(
-              Icons.play_arrow,
+              Icons.play_arrow_rounded,
               size: 60,
               color: Color.fromARGB(100, 255, 255, 255),
             ),
           ),
+        // 返回
         Positioned(
           top: 5,
           left: 5,
           child: GestureDetector(
-            onTap: () => Navigator.pop(context),
+            onTap: () => back(),
             child: const Icon(
               Icons.arrow_back,
               color: Colors.white,
             ),
           ),
         ),
+        // 底部功能区
         Positioned(
-          bottom: 40,
+          bottom: 0,
           left: 0,
           right: 0,
           child: Row(
             children: [
-              const SizedBox(
-                child: Icon(
-                  Icons.play_arrow_rounded,
-                  color: Colors.white,
-                  size: 40,
+              // 左下暂停
+              _bottomLeftBtn(),
+              // 进度条
+              _progressBar(context),
+              Container(
+                width: 40,
+                height: 40,
+                child: MenuAnchor(
+                  menuChildren: speeds.map((item) {
+                    return Center(
+                      child: Text(
+                        '${item}X',
+                        style: const TextStyle(color: Colors.black),
+                      ),
+                    );
+                  }).toList(),
+                  builder: (context, controller, child) {
+                    return TextButton(
+                      onPressed: () {
+                        if (controller.isOpen) {
+                          controller.close();
+                        } else {
+                          controller.open();
+                        }
+                      },
+                      child: const Text('Menu'),
+                    );
+                  },
                 ),
               ),
-              _progressBar(context),
+              // 切换横竖屏
+              _changeOritation()
             ],
           ),
         )
       ],
     );
+  }
+
+  /// 横竖屏按钮
+  Container _changeOritation() {
+    return Container(
+      margin: const EdgeInsets.only(left: 10),
+      child: GestureDetector(
+        onTap: () => changeScreenDirection(),
+        child: _currentOrientation == Orientation.portrait
+            ? const Icon(
+                Icons.aspect_ratio,
+                color: Colors.white,
+              )
+            : const Icon(
+                Icons.fullscreen_exit,
+                color: Colors.white,
+              ),
+      ),
+    );
+  }
+
+  /// 左下暂停按钮
+  SizedBox _bottomLeftBtn() {
+    return SizedBox(
+      child: GestureDetector(
+        onTap: () => pause(),
+        child: Container(
+          margin: const EdgeInsets.only(right: 5),
+          child: controller.value.isPlaying
+              ? const Icon(
+                  CupertinoIcons.pause_fill,
+                  color: Colors.white,
+                  size: 30,
+                )
+              : const Icon(
+                  CupertinoIcons.play_fill,
+                  color: Colors.white,
+                  size: 30,
+                ),
+        ),
+      ),
+    );
+  }
+
+  /// 返回上一页
+  void back() {
+    // 恢复屏幕状态
+    if (_orientation == Orientation.portrait) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
+    } else {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    }
+    Navigator.pop(context);
+  }
+
+  /// 切换横竖屏
+  void changeScreenDirection() {
+    if (_currentOrientation == Orientation.portrait) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    } else {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
+    }
+    setState(() {});
   }
 
   /// 进度条
@@ -241,7 +370,10 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
           value: controller.value.position.inSeconds.toDouble(),
           min: 0.0,
           max: controller.value.duration.inSeconds.toDouble(),
-          onChanged: (double position) {
+          onChangeStart: (positoin) {
+            if (!controller.value.isPlaying) controller.pause();
+          },
+          onChanged: (position) {
             setState(() {
               controller.seekTo(Duration(seconds: position.toInt()));
             });
@@ -279,7 +411,7 @@ class RectangularSliderThumbShape extends SliderComponentShape {
   }
 }
 
-/// 自定义长方形轨道
+/// 自定义轨道
 class CustomSliderTrackShape extends SliderTrackShape {
   final trackHeight = 2.0;
 
@@ -326,7 +458,7 @@ class CustomSliderTrackShape extends SliderTrackShape {
       trackRect.height,
     );
     final progressPaint = Paint()
-      ..color = Colors.blue
+      ..color = Colors.white
       ..style = PaintingStyle.fill;
     canvas.drawRect(progressRect, progressPaint);
 
