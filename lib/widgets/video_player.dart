@@ -1,4 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
@@ -67,7 +69,11 @@ class FullScreenVideoPlayer extends StatefulWidget {
 }
 
 class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
+  /// 播放器实例
   late VideoPlayerController controller;
+
+  /// 初始化完成
+  late Future<void> _initializeVideoPlayerFuture;
 
   /// 是否在加载
   bool isLoading = true;
@@ -76,10 +82,15 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
   void initState() {
     super.initState();
     // 初始化视频播放器控制器，使用网络视频或本地视频
-    controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+    // controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+    log('video_player - 视频地址：${widget.url.toString()}');
 
     // 本地视频
-    // _controller = VideoPlayerController.asset('assets/video.mp4');
+    controller = VideoPlayerController.asset('assets/videos/video_1.mp4');
+    // 初始化状态
+    _initializeVideoPlayerFuture = controller.initialize();
+    // 循环播放
+    controller.setLooping(true);
 
     controller.addListener(() {
       if (controller.value.isInitialized) {
@@ -89,6 +100,8 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
         });
       }
       if (controller.value.isBuffering) {
+        log('video_player 视频缓冲中···');
+
         /// 正在缓冲
         setState(() {
           isLoading = true;
@@ -98,15 +111,12 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
         setState(() {
           isLoading = false;
         });
-
-        // 自动播放
-        // controller.play();
       }
-    });
 
-    /// 视频初始化
-    controller.initialize().then((_) {
-      setState(() {});
+      // 自动播放
+      if (controller.value.position == Duration.zero) {
+        controller.play();
+      }
     });
   }
 
@@ -126,7 +136,6 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     setState(() {});
   }
 
-  // Navigator.pop(context);
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -138,66 +147,199 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
               height: double.infinity,
             ),
             Center(
-              child: isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : controller.value.isInitialized
-                      ? AspectRatio(
-                          aspectRatio: controller.value.aspectRatio,
-                          child: VideoPlayer(controller),
-                        )
-                      : const Text(
-                          'Video not initialized!',
-                          style: TextStyle(fontSize: 20, color: Colors.white),
-                        ),
+              child: FutureBuilder(
+                future: _initializeVideoPlayerFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.done) {
+                    return AspectRatio(
+                      aspectRatio: controller.value.aspectRatio,
+                      child: VideoPlayer(controller),
+                    );
+                  } else {
+                    return const CircularProgressIndicator(color: Colors.white);
+                  }
+                },
+              ),
             ),
-            Stack(
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  height: double.infinity,
-                  child: GestureDetector(
-                    onDoubleTap: () => pause(),
-                  ),
-                ),
-                if (!controller.value.isPlaying)
-                  const Center(
-                    child: Icon(
-                      Icons.play_arrow,
-                      size: 60,
-                      color: Color.fromARGB(100, 255, 255, 255),
-                    ),
-                  ),
-                Positioned(
-                  top: 5,
-                  left: 5,
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: const Icon(
-                      Icons.arrow_back,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 40,
-                  left: 0,
-                  right: 0,
-                  child: Slider(
-                    value: controller.value.position.inSeconds.toDouble(),
-                    min: 0.0,
-                    max: controller.value.duration.inSeconds.toDouble(),
-                    onChanged: (double position) {
-                      setState(() {
-                        controller.seekTo(Duration(seconds: position.toInt()));
-                      });
-                    },
-                  ),
-                )
-              ],
-            ),
+            // 缓冲交互
+            if (isLoading) const CircularProgressIndicator(color: Colors.white),
+            _funcView(context),
           ],
         ),
       ),
     );
+  }
+
+  /// 功能区
+  Stack _funcView(BuildContext context) {
+    return Stack(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: double.infinity,
+          child: GestureDetector(
+            onDoubleTap: () => pause(),
+          ),
+        ),
+        if (!isLoading && !controller.value.isPlaying)
+          const Center(
+            child: Icon(
+              Icons.play_arrow,
+              size: 60,
+              color: Color.fromARGB(100, 255, 255, 255),
+            ),
+          ),
+        Positioned(
+          top: 5,
+          left: 5,
+          child: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: const Icon(
+              Icons.arrow_back,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 40,
+          left: 0,
+          right: 0,
+          child: Row(
+            children: [
+              const SizedBox(
+                child: Icon(
+                  Icons.play_arrow_rounded,
+                  color: Colors.white,
+                  size: 40,
+                ),
+              ),
+              _progressBar(context),
+            ],
+          ),
+        )
+      ],
+    );
+  }
+
+  /// 进度条
+  Expanded _progressBar(BuildContext context) {
+    return Expanded(
+      child: SliderTheme(
+        data: SliderThemeData(
+          // 轨道
+          inactiveTrackColor: Colors.red,
+          activeTrackColor: Colors.white,
+          disabledActiveTrackColor: Colors.grey,
+          // 滑块形状
+          thumbShape: RectangularSliderThumbShape(),
+          trackShape: CustomSliderTrackShape(),
+        ),
+        child: Slider(
+          activeColor: const Color.fromARGB(255, 248, 248, 249),
+          inactiveColor: Colors.grey,
+          thumbColor: const Color.fromARGB(255, 222, 232, 240),
+          value: controller.value.position.inSeconds.toDouble(),
+          min: 0.0,
+          max: controller.value.duration.inSeconds.toDouble(),
+          onChanged: (double position) {
+            setState(() {
+              controller.seekTo(Duration(seconds: position.toInt()));
+            });
+          },
+        ),
+      ),
+    );
+  }
+}
+
+// 自定义长方形滑块
+class RectangularSliderThumbShape extends SliderComponentShape {
+  @override
+  Size getPreferredSize(bool isEnabled, bool isDiscrete) {
+    return const Size(12, 8); // 设置长方形滑块的大小
+  }
+
+  @override
+  void paint(PaintingContext context, Offset center,
+      {required Animation<double> activationAnimation,
+      required Animation<double> enableAnimation,
+      required bool isDiscrete,
+      required TextPainter labelPainter,
+      required RenderBox parentBox,
+      required SliderThemeData sliderTheme,
+      required TextDirection textDirection,
+      required double value,
+      required double textScaleFactor,
+      required Size sizeWithOverflow}) {
+    final Paint paint = Paint()..color = sliderTheme.thumbColor!;
+    final Rect rect = Rect.fromCenter(center: center, width: 12, height: 8);
+    final RRect roundedRect =
+        RRect.fromRectAndRadius(rect, const Radius.circular(3));
+    context.canvas.drawRRect(roundedRect, paint);
+  }
+}
+
+/// 自定义长方形轨道
+class CustomSliderTrackShape extends SliderTrackShape {
+  final trackHeight = 2.0;
+
+  @override
+  Rect getPreferredRect({
+    required RenderBox parentBox,
+    Offset offset = Offset.zero,
+    required SliderThemeData sliderTheme,
+    bool isEnabled = false,
+    bool isDiscrete = false,
+  }) {
+    final double trackLeft = offset.dx;
+    final double trackTop = offset.dy +
+        (parentBox.size.height - (sliderTheme.trackHeight ?? trackHeight)) / 2;
+    final double trackWidth = parentBox.size.width;
+    return Rect.fromLTWH(trackLeft, trackTop, trackWidth,
+        (sliderTheme.trackHeight ?? trackHeight));
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset,
+      {required RenderBox parentBox,
+      required SliderThemeData sliderTheme,
+      required Animation<double> enableAnimation,
+      required Offset thumbCenter,
+      Offset? secondaryOffset,
+      bool isEnabled = false,
+      bool isDiscrete = false,
+      required TextDirection textDirection}) {
+    final canvas = context.canvas;
+    final trackRect = getPreferredRect(
+      parentBox: parentBox,
+      offset: offset,
+      sliderTheme: sliderTheme,
+      isEnabled: isEnabled,
+      isDiscrete: isDiscrete,
+    );
+
+    // 绘制播放进度条
+    final progressRect = Rect.fromLTWH(
+      trackRect.left,
+      trackRect.top,
+      thumbCenter.dx - trackRect.left,
+      trackRect.height,
+    );
+    final progressPaint = Paint()
+      ..color = Colors.blue
+      ..style = PaintingStyle.fill;
+    canvas.drawRect(progressRect, progressPaint);
+
+    // 绘制剩余进度条
+    final remainingRect = Rect.fromLTWH(
+      thumbCenter.dx,
+      trackRect.top,
+      trackRect.right - thumbCenter.dx,
+      trackRect.height,
+    );
+    final remainingPaint = Paint()
+      ..color = Colors.grey
+      ..style = PaintingStyle.fill;
+    canvas.drawRect(remainingRect, remainingPaint);
   }
 }
