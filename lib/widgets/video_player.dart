@@ -1,4 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
@@ -37,7 +38,7 @@ class _OneHandVideoPlayerState extends State<OneHandVideoPlayer> {
         children: [
           // 封面图
           Image.network(
-            'https://one-hand.oss-cn-hangzhou.aliyuncs.com/suncaltures/default/photo_1.jpg', // 替换为你的封面图链接
+            'https://one-hand.oss-cn-hangzhou.aliyuncs.com/suncaltures/default/photo_1.jpg',
             fit: BoxFit.cover,
             width: double.infinity,
             height: double.infinity,
@@ -91,7 +92,18 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
 
   /// 视频倍速
   List<double> speeds = [3.0, 2.0, 1.0, 0.75, 0.5];
-  // List<double> speeds = [0.5, 0.75, 1.0, 2.0, 3.0];
+
+  /// 界面设置控制器
+  MenuController settingController = MenuController();
+
+  /// 显隐功能区定时器
+  Timer? showFuncViewTimer;
+
+  /// 显隐功能区状态
+  bool isShowFuncView = true;
+
+  /// 播放进度(0.0 ~ 1.0)
+  double _progress = 0.0;
 
   @override
   void initState() {
@@ -127,12 +139,14 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
           isLoading = false;
         });
       }
-
-      // 自动播放
-      if (controller.value.position == Duration.zero) {
-        controller.play();
-      }
     });
+
+    // 自动播放
+    if (controller.value.position == Duration.zero) {
+      controller.play();
+      // 初始化定时器
+      updateFuncViewTimer();
+    }
   }
 
   @override
@@ -152,7 +166,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     controller.dispose();
   }
 
-  /// 暂停播放
+  /// 开始暂停播放
   void pause() {
     if (controller.value.isPlaying) {
       controller.pause();
@@ -197,88 +211,149 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
   }
 
   /// 功能区
-  Stack _funcView(BuildContext context) {
-    return Stack(
-      children: [
-        // 双击暂停
-        SizedBox(
-          width: double.infinity,
-          height: double.infinity,
-          child: GestureDetector(
-            onDoubleTap: () => pause(),
-          ),
-        ),
-        if (!isLoading && !controller.value.isPlaying)
-          // 居中暂停
-          const Center(
-            child: Icon(
-              Icons.play_arrow_rounded,
-              size: 60,
-              color: Color.fromARGB(100, 255, 255, 255),
+  SizedBox _funcView(BuildContext context) {
+    return SizedBox(
+      child: Stack(
+        children: [
+          // 手势区
+          SizedBox(
+            width: double.infinity,
+            height: double.infinity,
+            child: GestureDetector(
+              onTap: () => showHideFuncView(),
+              onDoubleTap: () => pause(),
+              onHorizontalDragUpdate: slideProgress,
+              onHorizontalDragEnd: (details) => controller.pause(),
             ),
           ),
-        // 返回
-        Positioned(
-          top: 5,
-          left: 5,
-          child: GestureDetector(
-            onTap: () => back(),
-            child: const Icon(
-              Icons.arrow_back,
+          // 内容区
+          if (isShowFuncView)
+            Stack(
+              children: [
+                if (!isLoading && !controller.value.isPlaying)
+                  // 居中暂停
+                  const Center(
+                    child: Icon(
+                      Icons.play_arrow_rounded,
+                      size: 60,
+                      color: Color.fromARGB(100, 255, 255, 255),
+                    ),
+                  ),
+                // 返回
+                Positioned(
+                  top: 5,
+                  left: 5,
+                  child: GestureDetector(
+                    onTap: () => back(),
+                    child: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                // 底部功能区
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Row(
+                    children: [
+                      // 左下暂停
+                      _bottomLeftBtn(),
+                      // 进度条
+                      _progressBar(context),
+                      // 设置
+                      _settings(),
+                      // 切换横竖屏
+                      _changeOritation()
+                    ],
+                  ),
+                )
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 全屏滑动进度
+  void slideProgress(DragUpdateDetails details) {
+    // 计算滑动的距离并更新进度
+    setState(() {
+      _progress += details.delta.dx / 400; // 200 是一个缩放因子，可以根据需要调整
+      _progress = _progress.clamp(0.0, 1.0); // 确保进度在 0.0 到 1.0 之间
+      controller.seekTo(Duration(
+        milliseconds:
+            (_progress * controller.value.duration.inMilliseconds).toInt(),
+      ));
+    });
+  }
+
+  /// 显隐功能区
+  void showHideFuncView() {
+    setState(() {
+      isShowFuncView = !isShowFuncView;
+    });
+    if (isShowFuncView) {
+      // 开启定时器
+      updateFuncViewTimer();
+    }
+  }
+
+  /// 更新定时器
+  void updateFuncViewTimer() {
+    showFuncViewTimer?.cancel();
+    showFuncViewTimer = Timer(const Duration(seconds: 4), () {
+      setState(() {
+        isShowFuncView = false;
+      });
+    });
+  }
+
+  /// 底部设置
+  Container _settings() {
+    return Container(
+      width: 40,
+      height: 40,
+      margin: const EdgeInsets.only(left: 5, right: 5),
+      child: MenuAnchor(
+        menuChildren: speeds.map((item) {
+          return Center(
+            child: GestureDetector(
+              onTap: () {
+                controller.setPlaybackSpeed(item);
+                settingController.close();
+              },
+              child: Text(
+                '${item}X',
+                style: const TextStyle(color: Colors.black),
+              ),
+            ),
+          );
+        }).toList(),
+        builder: (context, controller, child) {
+          return IconButton(
+            onPressed: () {
+              settingController = controller;
+              if (controller.isOpen) {
+                controller.close();
+              } else {
+                controller.open();
+              }
+            },
+            icon: const Icon(
+              Icons.settings,
               color: Colors.white,
             ),
-          ),
-        ),
-        // 底部功能区
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Row(
-            children: [
-              // 左下暂停
-              _bottomLeftBtn(),
-              // 进度条
-              _progressBar(context),
-              Container(
-                width: 40,
-                height: 40,
-                child: MenuAnchor(
-                  menuChildren: speeds.map((item) {
-                    return Center(
-                      child: Text(
-                        '${item}X',
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                    );
-                  }).toList(),
-                  builder: (context, controller, child) {
-                    return TextButton(
-                      onPressed: () {
-                        if (controller.isOpen) {
-                          controller.close();
-                        } else {
-                          controller.open();
-                        }
-                      },
-                      child: const Text('Menu'),
-                    );
-                  },
-                ),
-              ),
-              // 切换横竖屏
-              _changeOritation()
-            ],
-          ),
-        )
-      ],
+          );
+        },
+      ),
     );
   }
 
   /// 横竖屏按钮
-  Container _changeOritation() {
-    return Container(
-      margin: const EdgeInsets.only(left: 10),
+  SizedBox _changeOritation() {
+    return SizedBox(
       child: GestureDetector(
         onTap: () => changeScreenDirection(),
         child: _currentOrientation == Orientation.portrait
