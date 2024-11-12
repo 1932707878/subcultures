@@ -151,7 +151,7 @@ class _PostCardState extends State<PostCard> {
         borderRadius: BorderRadius.circular(10),
         child: Container(
           // child: OneHandVideoPlayer(url: data.videos[0]),
-          child: Image.network(''),
+          child: Image.network(data.images[0]),
         ),
       ),
     );

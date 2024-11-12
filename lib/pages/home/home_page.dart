@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:subcultures/api/home/index.dart';
 import 'package:subcultures/models/post.dart';
-import 'package:subcultures/widgets/expandable_text.dart' as service;
+import 'package:subcultures/pages/home/home_view_model.dart' as service;
+import 'package:subcultures/widgets/post_card.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,15 +12,18 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   /// 帖子列表
-  List<Post> posts = [];
+  List<Post> datas = [];
 
-  // TODO: 接口
-  /// 接口服务
-  var service = service.getPostList();
+  /// 加载数据
+  void loadData() async {
+    datas = await service.getPostList();
+    setState(() {});
+  }
 
   @override
   void initState() {
     super.initState();
+    loadData();
   }
 
   @override
@@ -29,8 +31,10 @@ class _HomePageState extends State<HomePage> {
     return Container(
       margin: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 10),
       child: ListView.builder(
-        itemCount: 5,
-        itemBuilder: (context, index) {},
+        itemCount: datas.length,
+        itemBuilder: (context, index) {
+          return PostCard(data: datas[index]);
+        },
       ),
     );
   }

@@ -13,13 +13,11 @@ class CustomInterceptors extends Interceptor {
   /// 请求拦截
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    super.onRequest(options, handler);
-
     // http header 头加入 Authorization
-    final token = tokenStorage.getAccessToken() as String;
-    options.headers['Authorization'] = 'Bearer $token';
+    // final token = tokenStorage.getAccessToken() as String;
+    // options.headers['Authorization'] = 'Bearer $token';
 
-    return handler.next(options);
+    handler.next(options);
   }
 
   /// 响应拦截
@@ -36,8 +34,6 @@ class CustomInterceptors extends Interceptor {
         true,
       );
     } else {
-      // 提取Data
-      response.data = response.data['data'];
       handler.next(response);
     }
   }
@@ -62,6 +58,7 @@ class CustomInterceptors extends Interceptor {
           switch (errorMessage.statusCode) {
             // 401 未登录
             case 401:
+              consoleLog(msg: '401');
               // 刷新令牌校验
               _refreshToken(err, handler);
               // 注销 并跳转到登录页面
@@ -83,10 +80,13 @@ class CustomInterceptors extends Interceptor {
         }
         break;
       case DioExceptionType.unknown:
+        consoleLog(msg: '未知错误');
         break;
       case DioExceptionType.cancel:
+        consoleLog(msg: '取消请求');
         break;
       case DioExceptionType.connectionTimeout:
+        consoleLog(msg: '连接超时');
         break;
       default:
         break;
@@ -123,5 +123,10 @@ class CustomInterceptors extends Interceptor {
       log('Request Error: 刷新令牌出错！');
       log(e.toString());
     }
+  }
+
+  /// 日志打印
+  void consoleLog({String msg = ''}) {
+    log('dio_interceptors -- $msg');
   }
 }

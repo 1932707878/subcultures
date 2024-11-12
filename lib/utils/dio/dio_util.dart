@@ -11,12 +11,14 @@ const String TOKEN = 'Bearer token';
 // const String BASE_URL = 'http://localhost:8080';
 const String BASE_URL = 'https://6731c0cf7aaf2a9aff11df78.mockapi.io/api/v1';
 
+/// Dio工具类
 class DioUtil {
   static final DioUtil instance = DioUtil._init();
   factory DioUtil() => instance;
 
   late Dio _dio;
 
+  /// 私有构造
   DioUtil._init() {
     Map<String, String> headers = {
       CONTENT_TYPE: APPLICATION_JSON,
@@ -46,7 +48,7 @@ class DioUtil {
   }
 
   /// get 请求
-  Future<Response> get(
+  Future<dynamic> get(
     String url, {
     Map<String, dynamic>? params,
     Options? options,
@@ -59,11 +61,12 @@ class DioUtil {
       options: requestOptions,
       cancelToken: cancelToken,
     );
-    return response;
+    // 提取Data
+    return response.data;
   }
 
   /// post 请求
-  Future<Response> post(
+  Future<dynamic> post(
     String url, {
     dynamic data,
     Options? options,
@@ -76,11 +79,11 @@ class DioUtil {
       options: requestOptions,
       cancelToken: cancelToken,
     );
-    return response;
+    return response.data;
   }
 
   /// put 请求
-  Future<Response> put(
+  Future<dynamic> put(
     String url, {
     dynamic data,
     Options? options,
@@ -93,11 +96,11 @@ class DioUtil {
       options: requestOptions,
       cancelToken: cancelToken,
     );
-    return response;
+    return response.data;
   }
 
   /// delete 请求
-  Future<Response> delete(
+  Future<dynamic> delete(
     String url, {
     dynamic data,
     Options? options,
@@ -110,6 +113,6 @@ class DioUtil {
       options: requestOptions,
       cancelToken: cancelToken,
     );
-    return response;
+    return response.data;
   }
 }
