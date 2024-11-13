@@ -101,7 +101,7 @@ class CustomInterceptors extends Interceptor {
     // 创建新Dio实例，避免循环引用
     final dio = Dio();
     // 刷新令牌地址
-    const path = '$BASE_URL/refresh';
+    const path = BASE_URL + REFRESH_TOKEN_URL;
     try {
       String refreshToken = await tokenStorage.getRefreshToken();
       final resp = await dio.post(

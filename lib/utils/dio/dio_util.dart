@@ -8,8 +8,10 @@ const String ACCEPT = 'accept';
 const String AUTHORIZATION = 'authorization';
 const String DEFAULT_LANGUAGE = 'en';
 const String TOKEN = 'Bearer token';
-// const String BASE_URL = 'http://localhost:8080';
+// const String BASE_URL = 'http://localhost:8080/api/v1';
 const String BASE_URL = 'https://6731c0cf7aaf2a9aff11df78.mockapi.io/api/v1';
+const String ACCESS_TOKEN_URL = '/token';
+const String REFRESH_TOKEN_URL = '/refresh_token';
 
 /// Dio工具类
 class DioUtil {
