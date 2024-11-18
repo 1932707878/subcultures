@@ -2,9 +2,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:subcultures/common/constant.dart';
 
 import 'package:subcultures/models/post.dart';
 import 'package:subcultures/widgets/expandable_text.dart';
+import 'package:subcultures/widgets/media.dart';
 
 // ignore: must_be_immutable
 class PostCard extends StatefulWidget {
@@ -37,22 +39,19 @@ class _PostCardState extends State<PostCard> {
   /// 页面结构
   Center _getPage() {
     return Center(
-      child: SizedBox(
-        height: 380,
-        // color: Colors.white12,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 用户信息
-            _topView(),
-            // 标题和内容
-            _contentView(),
-            // 图片和视频
-            _mediaView(),
-            // 底部功能区
-            _bottomFuncView(),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 用户信息
+          _topView(),
+          // 标题和内容
+          _contentView(),
+          // 图片和视频
+          _mediaView(),
+          // 底部功能区
+          _bottomFuncView(),
+        ],
       ),
     );
   }
@@ -145,15 +144,10 @@ class _PostCardState extends State<PostCard> {
   /// ### 媒体区域
   ///
   /// 图片或视频
-  Expanded _mediaView() {
-    return Expanded(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          // child: OneHandVideoPlayer(url: data.videos[0]),
-          child: Image.network(data.images[0]),
-        ),
-      ),
+  Widget _mediaView() {
+    return SizedBox(
+      height: 280,
+      child: Media(),
     );
   }
 
@@ -183,7 +177,7 @@ class _PostCardState extends State<PostCard> {
           SizedBox(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(22),
-              child: Image.network(data.avatar),
+              child: Image.network(DEFAULT_USER_AVATAR_URL ?? data.avatar),
             ),
           ),
           // 昵称、时间

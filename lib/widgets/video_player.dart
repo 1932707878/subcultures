@@ -5,6 +5,7 @@ import 'dart:developer';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:subcultures/common/constant.dart';
 import 'package:video_player/video_player.dart';
 
 class OneHandVideoPlayer extends StatefulWidget {
@@ -38,7 +39,7 @@ class _OneHandVideoPlayerState extends State<OneHandVideoPlayer> {
         children: [
           // 封面图
           Image.network(
-            'https://one-hand.oss-cn-hangzhou.aliyuncs.com/suncaltures/default/photo_1.jpg',
+            DEFAULT_IMAGE_URL,
             fit: BoxFit.cover,
             width: double.infinity,
             height: double.infinity,
@@ -113,7 +114,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     log('video_player - 视频地址：${widget.url.toString()}');
 
     // 本地视频
-    controller = VideoPlayerController.asset('assets/videos/video_1.mp4');
+    controller = VideoPlayerController.asset(widget.url);
     // 初始化状态
     _initializeVideoPlayerFuture = controller.initialize();
     // 循环播放
