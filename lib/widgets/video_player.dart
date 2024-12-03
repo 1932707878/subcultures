@@ -1,19 +1,30 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:async';
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:subcultures/common/constant.dart';
+import 'package:subcultures/routes/page_controller.dart';
+import 'package:subcultures/utils/log/logController.dart';
 import 'package:video_player/video_player.dart';
 
 class OneHandVideoPlayer extends StatefulWidget {
+  /// 视频地址
   final String url;
+
+  /// 是否为预览视频
+  final bool isPreview;
+
+  /// 封面图
+  final String? coverUrl;
 
   const OneHandVideoPlayer({
     super.key,
     required this.url,
+    this.isPreview = false,
+    this.coverUrl,
   });
 
   @override
@@ -21,14 +32,39 @@ class OneHandVideoPlayer extends StatefulWidget {
 }
 
 class _OneHandVideoPlayerState extends State<OneHandVideoPlayer> {
+  late VideoPlayerController _controller;
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeController();
+  }
+
+  Future<void> _initializeController() async {
+    _controller = widget.isPreview
+        ? VideoPlayerController.file(File(widget.url))
+        : VideoPlayerController.networkUrl(Uri.parse(widget.url));
+
+    try {
+      await _controller.initialize();
+      setState(() {
+        _isInitialized = true;
+      });
+    } catch (e) {
+      Log.error('视频初始化失败', e);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   /// 播放视频
   void _playVideo() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => FullScreenVideoPlayer(url: widget.url),
-      ),
-    );
+    PPC.toFullScreenVideo(widget.url, widget.isPreview);
   }
 
   @override
@@ -38,12 +74,22 @@ class _OneHandVideoPlayerState extends State<OneHandVideoPlayer> {
         alignment: Alignment.center,
         children: [
           // 封面图
-          Image.network(
-            DEFAULT_IMAGE_URL,
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-          ),
+          if (widget.coverUrl != null)
+            Image.network(
+              widget.coverUrl!,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+              errorBuilder: (context, error, stackTrace) {
+                Log.error('加载视频封面失败', error, stackTrace);
+                return Container(color: Colors.black);
+              },
+            )
+          else if (_isInitialized)
+            VideoPlayer(_controller)
+          else
+            Container(color: Colors.black),
+
           // 播放按钮
           IconButton(
             icon: const Icon(
@@ -62,10 +108,12 @@ class _OneHandVideoPlayerState extends State<OneHandVideoPlayer> {
 /// 全屏播放视频组件
 class FullScreenVideoPlayer extends StatefulWidget {
   final String url;
+  final bool isPreview;
 
   const FullScreenVideoPlayer({
     super.key,
     required this.url,
+    this.isPreview = false,
   });
 
   @override
@@ -106,15 +154,21 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
   /// 播放进度(0.0 ~ 1.0)
   double _progress = 0.0;
 
+  /// 是否正在滑动进度
+  bool _isDragging = false;
+
+  /// 滑动前的播放状态
+  bool _wasPlayingBeforeDrag = false;
+
   @override
   void initState() {
     super.initState();
-    // 初始化视频播放器控制器，使用网络视频或本地视频
-    // controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
-    log('video_player - 视频地址：${widget.url.toString()}');
 
-    // 本地视频
-    controller = VideoPlayerController.asset(widget.url);
+    Log.info('video_player - 视频地址：${widget.url.toString()}');
+    // 初始化视频播放器控制器，使用网络视频或手机预览视频
+    controller = widget.isPreview
+        ? VideoPlayerController.file(File(widget.url))
+        : VideoPlayerController.networkUrl(Uri.parse(widget.url));
     // 初始化状态
     _initializeVideoPlayerFuture = controller.initialize();
     // 循环播放
@@ -163,8 +217,11 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
 
   @override
   void dispose() {
-    super.dispose();
+    // 取消定时器
+    showFuncViewTimer?.cancel();
+    // 释放控制器
     controller.dispose();
+    super.dispose();
   }
 
   /// 开始暂停播放
@@ -224,7 +281,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
               onTap: () => showHideFuncView(),
               onDoubleTap: () => pause(),
               onHorizontalDragUpdate: slideProgress,
-              onHorizontalDragEnd: (details) => controller.pause(),
+              onHorizontalDragEnd: onDragEnd,
             ),
           ),
           // 内容区
@@ -279,10 +336,16 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
 
   /// 全屏滑动进度
   void slideProgress(DragUpdateDetails details) {
-    // 计算滑动的距离并更新进度
+    if (!mounted) return; // 添加检查
+    if (!_isDragging) {
+      _isDragging = true;
+      _wasPlayingBeforeDrag = controller.value.isPlaying;
+      controller.pause();
+    }
+
     setState(() {
-      _progress += details.delta.dx / 400; // 200 是一个缩放因子，可以根据需要调整
-      _progress = _progress.clamp(0.0, 1.0); // 确保进度在 0.0 到 1.0 之间
+      _progress += details.delta.dx / 400;
+      _progress = _progress.clamp(0.0, 1.0);
       controller.seekTo(Duration(
         milliseconds:
             (_progress * controller.value.duration.inMilliseconds).toInt(),
@@ -290,13 +353,22 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
     });
   }
 
+  /// 滑动结束
+  void onDragEnd(DragEndDetails details) {
+    if (!mounted) return; // 添加检查
+    if (_wasPlayingBeforeDrag) {
+      controller.play();
+    }
+    _isDragging = false;
+  }
+
   /// 显隐功能区
   void showHideFuncView() {
+    if (!mounted) return; // 添加检查
     setState(() {
       isShowFuncView = !isShowFuncView;
     });
     if (isShowFuncView) {
-      // 开启定时器
       updateFuncViewTimer();
     }
   }
@@ -305,6 +377,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
   void updateFuncViewTimer() {
     showFuncViewTimer?.cancel();
     showFuncViewTimer = Timer(const Duration(seconds: 4), () {
+      if (!mounted) return; // 添加检查
       setState(() {
         isShowFuncView = false;
       });
@@ -407,7 +480,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
         DeviceOrientation.landscapeRight,
       ]);
     }
-    Navigator.pop(context);
+    PPC.back();
   }
 
   /// 切换横竖屏

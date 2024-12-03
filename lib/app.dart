@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-
-import 'package:subcultures/routes/route_utils.dart';
+import 'package:get/get.dart';
+import 'package:subcultures/utils/getx_controller/post_controller.dart';
 import 'package:subcultures/routes/routes.dart';
 
 class Subcultures extends StatelessWidget {
@@ -8,7 +8,9 @@ class Subcultures extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    Get.put(PostController());
+
+    return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
           scaffoldBackgroundColor: const Color(0xff171C28),
@@ -16,9 +18,8 @@ class Subcultures extends StatelessWidget {
               bodyMedium: TextStyle(
             color: Colors.white,
           ))),
-      navigatorKey: RouteUtils.navigatorKey,
-      onGenerateRoute: Routes.generateRoute,
-      initialRoute: RoutePath.tab,
+      getPages: Routes.pages,
+      initialRoute: RoutePath.launch,
     );
   }
 }

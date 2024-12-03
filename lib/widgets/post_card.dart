@@ -6,7 +6,8 @@ import 'package:subcultures/common/constant.dart';
 
 import 'package:subcultures/models/post.dart';
 import 'package:subcultures/widgets/expandable_text.dart';
-import 'package:subcultures/widgets/media.dart';
+import 'package:subcultures/widgets/medias_album.dart';
+import 'package:subcultures/widgets/medias_widget.dart';
 
 // ignore: must_be_immutable
 class PostCard extends StatefulWidget {
@@ -145,9 +146,11 @@ class _PostCardState extends State<PostCard> {
   ///
   /// 图片或视频
   Widget _mediaView() {
+    if (data.medias == null || data.medias!.isEmpty) {
+      return const SizedBox();
+    }
     return SizedBox(
-      height: 280,
-      child: Media(),
+      child: MediasAlbum(mediasJson: data.medias!),
     );
   }
 
@@ -157,7 +160,7 @@ class _PostCardState extends State<PostCard> {
       padding: const EdgeInsets.only(top: 5, bottom: 5),
       child: SizedBox(
         child: ExpandableText(
-          text: "sdadwasdasdasda" * 10,
+          text: data.content ?? '',
           contentStyle: const TextStyle(fontSize: 16),
           expendable: false,
         ),
@@ -177,7 +180,8 @@ class _PostCardState extends State<PostCard> {
           SizedBox(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(22),
-              child: Image.network(DEFAULT_USER_AVATAR_URL ?? data.avatar),
+              child:
+                  Image.network(data.user?.avatar ?? DEFAULT_USER_AVATAR_URL),
             ),
           ),
           // 昵称、时间
@@ -188,14 +192,14 @@ class _PostCardState extends State<PostCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    data.name,
+                    data.user?.name ?? '',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                     ),
                   ),
                   Text(
-                    _getTimeAgo(data.time),
+                    _getTimeAgo(data.createTime?.toString() ?? ''),
                     style: const TextStyle(
                       color: Color(0xffB1B5B5),
                       fontSize: 12,

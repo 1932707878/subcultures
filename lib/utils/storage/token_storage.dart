@@ -12,6 +12,16 @@ class TokenStorage {
 
   static const _instance = FlutterSecureStorage();
 
+  /// 检查是否存在Token
+  static Future<bool> checkToken() async {
+    var token = await _instance.read(key: 'accessToken');
+    return token != null;
+  }
+
+  Future<void> setAccessToken(String accessToken) async {
+    await _instance.write(key: 'accessToken', value: accessToken);
+  }
+
   Future<void> setToken(String accessToken, String refreshToken) async {
     await _instance.write(key: 'accessToken', value: accessToken);
     await _instance.write(key: 'refreshToken', value: refreshToken);
@@ -27,7 +37,7 @@ class TokenStorage {
     return token;
   }
 
-  Future<void> deleteAllTokens() async {
+  Future<void> clearToken() async {
     await _instance.deleteAll();
   }
 }

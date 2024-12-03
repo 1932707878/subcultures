@@ -1,36 +1,42 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:subcultures/routes/page_controller.dart';
 import 'package:subcultures/utils/storage/token_storage.dart';
 
-class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+class LaunchPage extends StatefulWidget {
+  const LaunchPage({super.key});
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  State<LaunchPage> createState() => _LaunchPageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _LaunchPageState extends State<LaunchPage> {
+  @override
+  void initState() {
+    super.initState();
+    autoLogin();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF7610AB),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              'Profile Page',
+              'Subcultures',
               style: TextStyle(
-                fontSize: 24,
+                color: Colors.white,
+                fontSize: 32,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 48),
             ElevatedButton(
-              onPressed: logout,
+              onPressed: () => PPC.toLogin(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
+                backgroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 32,
                   vertical: 16,
@@ -40,9 +46,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
               child: const Text(
-                'Logout',
+                'Login',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Color(0xFF7610AB),
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -54,12 +60,11 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  /// 退出登录
-  Future<void> logout() async {
-    log('profile_page --> logout: 退出登录');
-    // 删除token
-    await TokenStorage.instance.clearToken();
-    // 跳转到登录页面
-    PPC.toLaunch();
+  /// 自动登录
+  void autoLogin() async {
+    var isLogin = await TokenStorage.checkToken();
+    if (isLogin) {
+      PPC.toHome();
+    }
   }
 }
